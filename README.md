@@ -1,4 +1,6 @@
-# viASP
+# Test pypi publishing of viasp
+
+on test.pypi.org
 
 [![Build and Test](https://github.com/stephanzwicknagl/viasp/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/stephanzwicknagl/viasp/actions/workflows/build_and_test.yml) [![Documentation Status](https://readthedocs.org/projects/viasp/badge/?version=latest)](https://viasp.readthedocs.io/en/latest/?badge=latest)
 

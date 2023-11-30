@@ -1,0 +1,62 @@
+
+.row_header {
+    font-family: "Monaco", monospace;
+    font-size: 12pt;
+    border-radius: 0 8px 8px 0;
+    width: fit-content;
+    position: relative;
+    padding: 8px 8px 8px 16px;
+    z-index: 8;
+}
+
+.row_header_bar {
+    border-bottom: solid 1px #333333;
+    border-radius: 0 5px 0 0;
+    background-color: whitesmoke;
+}
+
+.row_toggle {
+    font-size: 10pt;
+    cursor: pointer;
+    padding-left: 10px;
+    padding-right: 10px;
+    transition: opacity .5s ease-in-out;
+    -moz-transition: opacity .5s ease-in-out;
+    -webkit-transition: opacity .5s ease-in-out;
+}
+
+.row_toggle:hover {
+    transition: opacity .5s ease-in-out;
+    -moz-transition: opacity .5s ease-in-out;
+    -webkit-transition: opacity .5s ease-in-out;
+}
+
+.row_row {
+    display: flex;
+    justify-content: space-around;
+    align-content: center;
+    background: transparent;
+}
+
+.row_container {
+    justify-content: space-around;
+    background: transparent;
+    padding-top: 1em;
+    /* overflow-y: hidden; */
+}
+
+.faded {
+    opacity: 0.6;
+    filter: grayscale(100%);
+
+}
+.dragHandle {
+    visibility: hidden;
+    cursor: move;
+    padding-left: 10px;
+    width: 20px;
+    height: 16px;
+}
+.row_container:hover .dragHandle{
+    visibility: visible;
+}

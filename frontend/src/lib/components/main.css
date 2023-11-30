@@ -1,0 +1,45 @@
+
+body {
+    margin: 0;
+    flex-flow: column;
+    overflow-x: hidden;
+}
+
+.noselect {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none;
+    /* Non-prefixed version, currently
+                                     supported by Chrome, Edge, Opera and Firefox */
+}
+
+.user_message {
+    width: fit-content;
+    width: -moz-fit-content;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px 5px 5px 5px;
+    font-family: sans-serif;
+    -moz-box-shadow: 3px 3px 5px 6px #ccc;
+    -webkit-box-shadow: 3px 3px 5px 6px #ccc;
+    box-shadow: 2px 2px 4px 2px #ccc;
+}
+
+.user_message_list {
+    position: absolute;
+    float: left;
+    z-index: 99;
+}
+
+.alert-shown {
+    opacity: 1;
+    transition: all 250ms linear;
+}
+
+.alert-hidden {
+    opacity: 0;
+    transition: all 250ms linear 2s;
+}

@@ -1,0 +1,1 @@
+sample.{encoding} :- sample.

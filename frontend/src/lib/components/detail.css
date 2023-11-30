@@ -1,0 +1,53 @@
+
+.detail {
+    float: right;
+    height: 100vh;
+    box-shadow: -1px -1px 2px 1px rgba(0, 0, 0, .2);
+    font-family: monospace;
+    overflow-x: scroll;
+    transition: width 0.2s;
+    width: 0;
+    position: fixed;
+    z-index: 20;
+    /*position: fixed; !* Sit on top of the page content *!*/
+    top: 0;
+    right: 0;
+}
+
+.detail-open {
+    width: 20%;
+}
+
+@media screen and (max-height: 450px) {
+    .detail-column {
+        padding-top: 15px;
+    }
+}
+
+.detail_atom_view_heading {
+    font-family: monospace, sans-serif;
+    overflow: hidden;
+    font-size: 11pt;
+    text-align: left;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+
+.detail_atom_view_content {
+    width: fit-content;
+    padding: 5px;
+    margin: 5px;
+    border-radius: 10px 10px 10px 10px;
+}
+
+.detail_atom_view_content_container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.closeButton {
+    font-size: 24pt;
+    cursor: pointer;
+}

@@ -1,0 +1,23 @@
+#python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info
+dist/
+build/
+docs/_build/
+# mac
+*DS_Store
+# dev
+*.idea
+#js
+*node_modules
+*.build_cache
+*inst
+*deps
+*man
+# notes
+# ignore build of viasp dash
+# frontend/viasp_dash/*
+# data
+*.json

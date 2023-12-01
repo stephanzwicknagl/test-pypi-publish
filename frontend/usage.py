@@ -1,10 +1,10 @@
-import viasp_dash
+import test_viasp_dash
 from dash import Dash, html, Input, Output
 
 app = Dash(__name__)
 
 app.layout = html.Div([
-    viasp_dash.ViaspDash(
+    test_viasp_dash.ViaspDash(
         id="myID",
         backendURL="http://localhost:5000"
     ),

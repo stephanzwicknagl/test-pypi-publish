@@ -14,7 +14,7 @@ import os
 import atexit
 from subprocess import Popen
 from time import time
-import viasp_dash
+import test_viasp_dash
 from dash import Dash, jupyter_dash
 from dash._jupyter import _jupyter_config
 
@@ -57,7 +57,7 @@ def run(host=DEFAULT_BACKEND_HOST, port=DEFAULT_BACKEND_PORT, colors=None):
     viasp_backend = Popen(command, stdout=log, stderr=log)
 
     app = Dash(__name__)
-    app.layout = viasp_dash.ViaspDash(
+    app.layout = test_viasp_dash.ViaspDash(
         id="myID",
         backendURL=backend_url,
         colors=colors

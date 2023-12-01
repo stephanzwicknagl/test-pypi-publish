@@ -18,4 +18,5 @@ setup(
     classifiers=[
         'Framework :: Dash',
     ],
+    long_description=open('README.md').read(),
 )

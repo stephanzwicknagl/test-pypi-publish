@@ -24,7 +24,7 @@ class InstallLocalPackage(install):
         subprocess.call(['pip', 'install', '-e', 'frontend'])
 
 # Package meta-data.
-NAME = 'viasp'
+NAME = 'test_viasp'
 DESCRIPTION = 'a visualization tool for clingo.'
 URL = 'https://github.com/potassco/viasp'
 EMAIL = 'Luis.Glaser@uni-potsdam.de'

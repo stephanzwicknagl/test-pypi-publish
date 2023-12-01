@@ -34,7 +34,7 @@ jobs:
         if: ${{ github.event.inputs.backend == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/p/test-viasp-backend/
+          repository-url: https://test.pypi.org/legacy/test-viasp-backend/ # relace with https://upload.pypi.org/legacy/ ??
   frontend:
     name: Publish frontend
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
         if: ${{ github.event.inputs.frontend == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/p/test-viasp-dash/
+          repository-url: https://test.pypi.org/legacy/test-viasp-dash/
   wrapper:
     needs: [ frontend, backend ]
     name: Publish container
@@ -86,5 +86,5 @@ jobs:
       - name: Publish on PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/p/test-viasp/
+          repository-url: https://test.pypi.org/legacy/test-viasp/
           packages-dir: dist

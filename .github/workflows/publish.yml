@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: test
-      url: https://test.pypi.org/p/test-viasp-backend
     permissions:
       id-token: write
     steps:
@@ -34,12 +33,13 @@ jobs:
       - name: Publish on PyPi
         if: ${{ github.event.inputs.backend == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/p/test-viasp-backend          
   frontend:
     name: Publish frontend
     runs-on: ubuntu-latest
     environment:
       name: test
-      url: https://test.pypi.org/p/test-viasp-dash
     permissions:
       id-token: write
     steps:
@@ -54,6 +54,8 @@ jobs:
       - name: Publish on PyPi
         if: ${{ github.event.inputs.frontend == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/p/test-viasp-dash
   wrapper:
     needs: [ frontend, backend ]
     name: Publish container
@@ -61,7 +63,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: test
-      url: https://test.pypi.org/p/test-viasp
     permissions:
       id-token: write
     steps:
@@ -85,4 +86,5 @@ jobs:
       - name: Publish on PyPi
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          repository-url: https://test.pypi.org/p/test-viasp
           packages-dir: dist

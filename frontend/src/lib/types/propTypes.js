@@ -10,7 +10,6 @@ export const SYMBOL = PropTypes.exact({
 export const SYMBOLIDENTIFIER = PropTypes.exact({
     _type: PropTypes.oneOf(['SymbolIdentifier']),
     symbol: SYMBOL,
-    has_reason: PropTypes.bool,
     uuid: PropTypes.string
 })
 
@@ -22,13 +21,7 @@ export const SIGNATURE = PropTypes.exact({
 export const TRANSFORMATION = PropTypes.exact({
     _type: PropTypes.oneOf(['Transformation']),
     id: PropTypes.number,
-    rules: PropTypes.array,
-    hash: PropTypes.string
-})
-export const TRANSFORMATIONWRAPPER = PropTypes.exact({
-    transformation: TRANSFORMATION,
-    shown: PropTypes.bool,
-    hash: PropTypes.string
+    rules: PropTypes.array
 })
 export const GRAPH = PropTypes.exact({
     _type: PropTypes.oneOf(['Graph']),

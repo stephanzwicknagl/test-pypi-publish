@@ -11,33 +11,30 @@ function loadFacts(backendURL) {
     return fetch(`${backendURL("graph/facts")}`).then(r => r.json());
 }
 
-export function Facts() {
-    const { backendURL} = useSettings();
+export function Facts(props) {
+    const {notifyClick} = props;
+    const {state, backendURL} = useSettings();
     const [fact, setFact] = React.useState(null);
-    const backendURLRef = React.useRef(backendURL)
-    
     React.useEffect(() => {
         let mounted = true;
-        loadFacts(backendURLRef.current)
+        loadFacts(backendURL)
             .then(items => {
                 if (mounted) {
                     setFact(items)
                 }
-            });
-        return () => { mounted = false };
-    }, []);
-
+            })
+        return () => mounted = false;
+    }, [state.backend_url]);
     if (fact === null) {
         return (
             <div className="row_container">
             </div>
         )
     }
-    return fact === null ? <div>Loading...</div> :
-        <div className="row_row"><Node 
-                key={fact.uuid} 
-                node={fact}
-                showMini={false}/></div>
+    return fact === null ? null :
+        <div className="row_row"><Node key={fact.uuid} node={fact}
+                                       showMini={false}
+                                       notifyClick={notifyClick}/></div>
 
 }
 
@@ -50,17 +47,13 @@ Facts.propTypes = {
 
 function FactBanner(props) {
     const {fact} = props;
-    const [, dispatchShownNodes] = useShownNodes()
+    const [, dispatch] = useShownNodes()
     const colorPalette = useColorPalette();
-    const dispatchShownNodesRef = React.useRef(dispatchShownNodes);
-    const nodeuuidRef = React.useRef(fact.uuid);
 
     React.useEffect(() => {
-        const dispatch = dispatchShownNodesRef.current;
-        const nodeuuid = nodeuuidRef.current
-        dispatch(showNode(nodeuuid))
+        dispatch(showNode(fact.uuid))
         return () => {
-            dispatch(hideNode(nodeuuid))
+            dispatch(hideNode(fact.uuid))
         }
     }, [])
     const clazzName = `${fact.uuid} facts_banner noselect`

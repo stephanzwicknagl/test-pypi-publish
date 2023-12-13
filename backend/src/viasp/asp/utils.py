@@ -1,15 +1,15 @@
 """Mostly graph utility functions."""
 import networkx as nx
 from clingo import Symbol
-from clingo.ast import ASTType, AST
-from typing import List, Sequence, Tuple, Dict, Set, FrozenSet, Union
+from clingo.ast import Rule, ASTType
+from typing import List, Sequence
 from ..shared.simple_logging import warn
 from ..shared.model import Node, SymbolIdentifier
 from ..shared.util import pairwise, get_root_node_from_graph
-from ..server.blueprints.dag_api import get_database
 
-def is_constraint(rule: AST) -> bool:
-    return rule.ast_type == ASTType.Rule and "atom" in rule.head.child_keys and rule.head.atom.ast_type == ASTType.BooleanConstant # type: ignore
+
+def is_constraint(rule: Rule):
+    return rule.ast_type == ASTType.Rule and "atom" in rule.head.child_keys and rule.head.atom.ast_type == ASTType.BooleanConstant
 
 
 def merge_constraints(g: nx.Graph) -> nx.Graph:
@@ -21,30 +21,29 @@ def merge_constraints(g: nx.Graph) -> nx.Graph:
     return nx.relabel_nodes(g, mapping)
 
 
-def merge_cycles(g: nx.Graph) -> Tuple[nx.Graph, FrozenSet[AST]]:
-    mapping: Dict[AST, AST] = {}
-    merge_node: FrozenSet[AST] = frozenset()
-    where_recursion_happens = set()
+def merge_cycles(g: nx.Graph) -> nx.Graph:
+    mapping = {}
     for cycle in nx.algorithms.components.strongly_connected_components(g):
         merge_node = merge_nodes(cycle)
         mapping.update({old_node: merge_node for old_node in cycle})
     # which nodes were merged
+    where_recursion_happens = set()
     for k,v in mapping.items():
         if k != v:
             where_recursion_happens.add(merge_node)
     return nx.relabel_nodes(g, mapping), frozenset(where_recursion_happens)
 
 
-def merge_nodes(nodes: frozenset) -> FrozenSet[AST]:
+def merge_nodes(nodes: frozenset) -> frozenset:
     old = set()
     for x in nodes:
         old.update(x)
     return frozenset(old)
 
 
-def remove_loops(g: nx.Graph) -> Tuple[nx.Graph, FrozenSet[AST]]:
-    remove_edges: List[Tuple[AST, AST]] = []
-    where_recursion_happens: Set[AST] = set()
+def remove_loops(g: nx.Graph) -> nx.Graph:
+    remove_edges = []
+    where_recursion_happens = set()
     for edge in g.edges:
         u, v = edge
         if u == v:
@@ -57,23 +56,42 @@ def remove_loops(g: nx.Graph) -> Tuple[nx.Graph, FrozenSet[AST]]:
     return g, frozenset(where_recursion_happens)
 
 
-def rank_topological_sorts(all_sorts: List, rules: Sequence[AST]) -> List:
-    """ 
-    Ranks all topological sorts by the number of rules that are in the same order as in the rules list.
-    The highest rank is the first element in the list.
+def topological_sort(g: nx.DiGraph, rules: Sequence[Rule]) -> List:
+    """ Topological sort of the graph.
+        If the order is ambiguous, prefer the order of the rules.
+        Note: Rule = Node
 
-    :param all_sorts: List of all topological sorts
-    :param rules: List of rules
+        :param g: Graph
+        :param rules: List of Rules
     """
-    ranked_sorts = []
-    for sort in all_sorts:
-        rank = 0
-        sort_rules = [rule for frznst in sort for rule in frznst]
-        for i in range(len(sort_rules)):
-            rank -= (rules.index(sort_rules[i])+1)*(i+1)
-        ranked_sorts.append((sort, rank))
-    ranked_sorts.sort(key=lambda x: x[1])
-    return [x[0] for x in ranked_sorts]
+    sorted: List = []        # L list of the sorted elements
+    no_incoming_edge = set() # set of all nodes with no incoming edges
+
+    no_incoming_edge.update([node for node in g.nodes if g.in_degree(node) == 0])
+    while len(no_incoming_edge):
+        earliest_node_index = len(rules)
+        earliest_node = None
+        for node in no_incoming_edge:
+            for rule in node:
+                node_index = rules.index(rule)
+                if node_index<earliest_node_index:
+                    earliest_node_index=node_index
+                    earliest_node = node
+
+        no_incoming_edge.remove(earliest_node)
+        sorted.append(earliest_node)
+
+        # update graph
+        for node in list(g.successors(earliest_node)):
+            g.remove_edge(earliest_node, node)
+            if g.in_degree(node)==0:
+                no_incoming_edge.add(node)
+
+    if len(g.edges):
+        warn("Could not sort the graph.")
+        raise Exception("Could not sort the graph.")
+    return sorted
+
 
 def insert_atoms_into_nodes(path: List[Node]) -> None:
     facts = path[0]
@@ -117,9 +135,6 @@ def identify_reasons(g: nx.DiGraph) -> nx.DiGraph:
                         for r in rr:
                             tmp_reason.append(get_identifiable_reason(v.recursive, node, r, super_graph=g, super_node=v))
                         node.reason[str(new)] = tmp_reason
-            for s in v.diff:
-                if str(s.symbol) in v.reason.keys() and len(v.reason[str(s.symbol)]) > 0:
-                    s.has_reason = True
             searched_nodes.add(v)
             for w in g.successors(v): 
                 children_next.add(w)
@@ -130,7 +145,7 @@ def identify_reasons(g: nx.DiGraph) -> nx.DiGraph:
 
 
 def get_identifiable_reason(g: nx.DiGraph, v: Node, r: Symbol,
-                    super_graph=None, super_node=None) -> Union[SymbolIdentifier, None]:
+                    super_graph=None, super_node=None) -> SymbolIdentifier:
     """
     Returns the SymbolIdentifier that is the reason for the given Symbol r.
     If the reason is not in the node, it returns recursively calls itself with the predecessor.
@@ -150,25 +165,4 @@ def get_identifiable_reason(g: nx.DiGraph, v: Node, r: Symbol,
     # stop criterion: v is the root node and there is no super_graph
     warn(f"An explanation could not be made")
     return None
-
-
-def harmonize_uuids(g: nx.DiGraph) -> nx.DiGraph:
-    """
-    Harmonizes the uuids of the nodes in the graph with those of existing graphs of different sortings.
-    """
-    database = get_database()
-
-    if database.get_current_graph() != "":
-        pattern_g = database.load()
-
-        pattern_nodes = set(pattern_g.nodes())
-        incoming_nodes = set(g.nodes())
-
-        for incoming in incoming_nodes:
-            for pattern in pattern_nodes:
-                if incoming == pattern:
-                    incoming.uuid = pattern.uuid
-                    incoming.atoms = pattern.atoms
-                    incoming.diff = pattern.diff
-
-    return g
+    

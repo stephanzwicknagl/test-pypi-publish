@@ -1,10 +1,7 @@
 from itertools import tee
-from typing import Any, TypeVar, Iterable, Tuple, List
+from typing import Any, TypeVar, Iterable, Tuple
 from collections import defaultdict
 from types import MappingProxyType
-from clingo import Symbol
-from hashlib import sha1
-from flask import current_app
 
 import networkx as nx
 
@@ -44,8 +41,8 @@ def pairwise(iterable: Iterable[T]) -> Iterable[Tuple[T, T]]:
     next(b, None)
     return zip(a, b)
 
-def DefaultMappingProxyType() -> MappingProxyType[Symbol, List]:
-    return MappingProxyType(defaultdict())
+def DefaultMappingProxyType():
+    return MappingProxyType(defaultdict(list))
 
 def is_recursive(node, graph):
     """
@@ -61,18 +58,3 @@ def is_recursive(node, graph):
         for n in nn:
             if n.recursive != False and node in set(n.recursive.nodes):
                 return True
-            
-
-def hash_from_sorted_transformations(sorted_program: List[Any]) -> str:
-    hashes = [s.hash for s in sorted_program]
-    concatenated = "".join(hashes)
-    hash_object = sha1(concatenated.encode())
-    return hash_object.hexdigest()
-
-def hash_transformation_rules(rules: Tuple[Any, ...]) -> str:
-    hash_object = sha1()
-    for rule in rules:
-        rule_str = current_app.json.dumps(rule)
-        rule_hash = sha1(rule_str.encode()).hexdigest()
-        hash_object.update(rule_hash.encode())
-    return hash_object.hexdigest()

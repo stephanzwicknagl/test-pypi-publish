@@ -1,23 +1,21 @@
-from typing import Tuple, Any, Dict, Iterable, Collection, List
+from typing import Tuple, Any, Dict, Iterable
 from unittest.mock import NonCallableMagicMock
 
-from flask import request, Blueprint, jsonify, abort, Response, current_app
+from flask import request, Blueprint, jsonify, abort, Response
 from flask_cors import cross_origin
 from uuid import uuid4
 
 from clingo import Control
 from clingraph.orm import Factbase
-from clingo.ast import AST
 from clingraph.graphviz import compute_graphs, render
 from ...shared.defaults import CLINGRAPH_PATH
 
-from .dag_api import save_graph, last_nodes_in_graph, get_graph
+from .dag_api import set_graph, last_nodes_in_graph, get_graph
 from ..database import CallCenter, ProgramDatabase
 from ...asp.justify import build_graph
 from ...asp.reify import ProgramAnalyzer, reify_list
 from ...asp.relax import ProgramRelaxer, relax_constraints
-from ...shared.model import ClingoMethodCall, StableModel, Transformation
-from ...shared.util import hash_from_sorted_transformations
+from ...shared.model import ClingoMethodCall, StableModel
 from ...asp.replayer import apply_multiple
 
 bp = Blueprint("api", __name__, template_folder='../templates/')
@@ -60,7 +58,7 @@ def add_call():
             handle_calls_received(call)
         else:
             abort(Response("Invalid call object", 400))
-    return "ok", 200
+    return "ok"
 
 
 def get_by_name_or_index_from_args_or_kwargs(name: str, index: int, *args: Tuple[Any], **kwargs: Dict[Any, Any]):
@@ -113,8 +111,6 @@ def models_clear():
         dc.models.clear()
         global ctl
         ctl = None
-    return "ok"
-
 
 @bp.route("/control/add_transformer", methods=["POST"])
 def set_transformer():
@@ -123,10 +119,10 @@ def set_transformer():
             dc.transformer = request.json
         except BaseException:
             return "Invalid transformer object", 400
-    return "ok", 200
+    return "ok"
 
 
-def wrap_marked_models(marked_models: Iterable[StableModel]) -> List[List[str]]:
+def wrap_marked_models(marked_models: Iterable[StableModel]):
     result = []
     for model in marked_models:
         wrapped = []
@@ -144,20 +140,29 @@ def used_clingraph():
     return using_clingraph
 
 
-@bp.route("/control/warnings", methods=["POST", "DELETE", "GET"])
+@bp.route("/control/warnings", methods=["POST"])
 def set_warnings():
-    if request.method == "POST":
-        _set_warnings(request.json)
-    elif request.method == "DELETE":
-        _set_warnings([])
-    elif request.method == "GET":
-        return jsonify(dc.warnings)
+    _set_warnings(request.json)
     return "ok"
 
 
+@bp.route("/control/warnings", methods=["DELETE"])
+@cross_origin(origin='localhost', headers=['Content-Type', 'Authorization'])
+def clear_warnings():
+    dc.warnings = []
+
+
+@bp.route("/control/warnings", methods=["GET"])
+@cross_origin(origin='localhost', headers=['Content-Type', 'Authorization'])
+def get_warnings():
+    return jsonify(dc.warnings)
+
+
 @bp.route("/control/show", methods=["POST"])
+@cross_origin(origin='localhost', headers=['Content-Type', 'Authorization'])
 def show_selected_models():
-    marked_models: List[List[str]] = wrap_marked_models(dc.models)
+    marked_models = dc.models
+    marked_models = wrap_marked_models(marked_models)
 
     db = ProgramDatabase()
     analyzer = ProgramAnalyzer()
@@ -165,40 +170,33 @@ def show_selected_models():
     _set_warnings(analyzer.get_filtered())
     if analyzer.will_work():
         recursion_rules = analyzer.check_positive_recursion()
-        for sorted_program in analyzer.get_sorted_program():
-            reified: Collection[AST] = reify_list(sorted_program, 
-                                h=analyzer.get_conflict_free_h(),
-                                model=analyzer.get_conflict_free_model(),
-                                get_conflict_free_variable=analyzer.get_conflict_free_variable)
-            g = build_graph(marked_models, reified, sorted_program, analyzer, recursion_rules)
-            save_graph(g, hash_from_sorted_transformations(sorted_program), current_app.json.dumps(sorted_program))
+        reified = reify_list(analyzer.get_sorted_program(), h=analyzer.get_conflict_free_h(),
+                             model=analyzer.get_conflict_free_model(),
+                             get_conflict_free_variable=analyzer.get_conflict_free_variable)
+        g = build_graph(marked_models, reified, analyzer, recursion_rules)
+
+        set_graph(g)
     return "ok", 200
 
-
 @bp.route("/control/relax", methods=["POST"])
+@cross_origin(origin='localhost', headers=['Content-Type', 'Authorization'])
 def transform_relax():
     db = ProgramDatabase()
-    if request.json is None:
-        return "Invalid request", 400
-    args = request.json["args"] if "args" in request.json else []
-    kwargs = request.json["kwargs"] if "kwargs" in request.json else {}
-    relaxer = ProgramRelaxer(*args, **kwargs)
+    relaxer = ProgramRelaxer(*request.json["args"], **request.json["kwargs"])
     relaxed = relax_constraints(relaxer, db.get_program())
     return jsonify(relaxed)
 
-
-@bp.route("/control/clingraph", methods=["POST", "GET", "DELETE"])
+@bp.route("/control/clingraph", methods=["POST", "GET"])
+@cross_origin(origin='localhost', headers=['Content-Type', 'Authorization'])
 def clingraph_generate():
     global using_clingraph
 
     if request.method == "POST":
         marked_models = dc.models
         marked_models = wrap_marked_models(marked_models)
-        if request.json is None:
-            return "Invalid request", 400
-        viz_encoding = request.json["viz-encoding"] if "viz-encoding" in request.json else ""
-        engine = request.json["engine"] if "engine" in request.json else "dot"
-        graphviz_type = request.json["graphviz-type"] if "graphviz-type" in request.json else "digraph"
+        viz_encoding = request.json["viz-encoding"]
+        engine = request.json["engine"]
+        graphviz_type = request.json["graphviz-type"]
 
 
         # for every model that was maked
@@ -208,25 +206,17 @@ def clingraph_generate():
             control.add("base", [], ''.join(model))
             control.add("base", [], viz_encoding)
             control.ground([("base", [])])
-            with control.solve(yield_=True) as handle: # type: ignore
+            with control.solve(yield_=True) as handle:
                 for m in handle:
                     fb = Factbase.from_model(m, default_graph="base")
                     graphs = compute_graphs(fb, graphviz_type)
 
                     filename = uuid4().hex
-                    if len(graphs) > 0:
-                        render(graphs, format="png", directory=CLINGRAPH_PATH, name_format=filename, engine=engine)
-                        using_clingraph.append(filename)
+                    using_clingraph.append(filename)
+                    
+                    render(graphs, format="png", directory=CLINGRAPH_PATH, name_format=filename, engine=engine)
     if request.method == "GET":
         if len(using_clingraph) > 0:
             return jsonify({"using_clingraph": True}), 200
         return jsonify({"using_clingraph": False}), 200
-    if request.method == "DELETE":
-        using_clingraph = []
     return "ok", 200
-
-def stringify_reified(reified: List[Collection[AST]]) -> str:
-    ab = [", ".join(list(map(str,r))) for r in reified]
-    st = '\n    '.join(ab)
-    return st
-

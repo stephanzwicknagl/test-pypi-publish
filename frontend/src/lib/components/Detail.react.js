@@ -3,7 +3,6 @@ import {make_atoms_string} from "../utils/index";
 import './detail.css';
 import PropTypes from "prop-types";
 import {useColorPalette} from "../contexts/ColorPalette";
-import { useShownDetail } from "../contexts/ShownDetail";
 import {useSettings} from "../contexts/Settings";
 import {SIGNATURE, SYMBOL} from "../types/propTypes";
 import {IoChevronDown, IoChevronForward, IoCloseSharp} from "react-icons/io5";
@@ -55,8 +54,8 @@ DetailForSignature.propTypes =
         symbols: PropTypes.arrayOf(SYMBOL)
     }
 
-function loadDataForDetail(backendURL, uuid) {
-    return fetch(`${backendURL("detail")}/${uuid}`).then(r => r.json())
+function loadDataForDetail(uuid, url_provider) {
+    return fetch(`${url_provider("detail")}/${uuid}`).then(r => r.json())
 }
 
 function CloseButton(props) {
@@ -72,19 +71,16 @@ CloseButton.propTypes =
         onClick: PropTypes.func
     }
 
-export function Detail() {
+export function Detail(props) {
     const [data, setData] = React.useState(null);
     const [type, setType] = React.useState("Model");
+    const {shows, clearDetail} = props;
     const {backendURL} = useSettings();
-    const backendURLRef = React.useRef(backendURL);
     const colorPalette = useColorPalette();
-    const { shownDetail: shows, setShownDetail } = useShownDetail();
-    const clearDetail = () => setShownDetail(null);
-
     React.useEffect(() => {
         let mounted = true;
         if (shows !== null) {
-            loadDataForDetail(backendURLRef.current, shows)
+            loadDataForDetail(shows, backendURL)
                 .then(items => {
                     if (mounted) {
                         setData(items[1])
@@ -93,7 +89,7 @@ export function Detail() {
                     }
                 })
         }
-        return () => { mounted = false };
+        return () => mounted = false;
     }, [shows])
 
     return <div id="detailSidebar" style={{ backgroundColor: colorPalette.info, color: colorPalette.dark}}
@@ -107,4 +103,16 @@ export function Detail() {
     </div>
 }
 
-Detail.propTypes = {}
+
+Detail.propTypes =
+    {
+        /**
+         * The node to show
+         */
+        shows: PropTypes.string,
+
+        /**
+         * The function that should be called to close the detail again.
+         */
+        clearDetail: PropTypes.func
+    }

@@ -1,7 +1,11 @@
 
 .row_header {
+    background-color: whitesmoke;
     font-family: "Monaco", monospace;
     font-size: 12pt;
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
     border-radius: 0 8px 8px 0;
     width: fit-content;
     position: relative;
@@ -42,7 +46,6 @@
     justify-content: space-around;
     background: transparent;
     padding-top: 1em;
-    /* overflow-y: hidden; */
 }
 
 .faded {
@@ -50,13 +53,15 @@
     filter: grayscale(100%);
 
 }
-.dragHandle {
-    visibility: hidden;
-    cursor: move;
-    padding-left: 10px;
-    width: 20px;
-    height: 16px;
+
+.boxrow_container {
+    justify-content: space-around;
+    background: transparent;
 }
-.row_container:hover .dragHandle{
-    visibility: visible;
+
+.boxrow_row {
+    display: flex;
+    justify-content: space-around;
+    align-content: center;
+    background: transparent;
 }

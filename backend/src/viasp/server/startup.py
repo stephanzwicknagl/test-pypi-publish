@@ -12,15 +12,18 @@
 import sys
 import os
 import atexit
+import shutil
 from subprocess import Popen
 from time import time
-import test_viasp_dash
+
+import viasp_dash
 from dash import Dash, jupyter_dash
 from dash._jupyter import _jupyter_config
 
 from viasp import clingoApiClient
 from viasp.shared.defaults import (DEFAULT_BACKEND_HOST, DEFAULT_BACKEND_PORT,
-                                   DEFAULT_BACKEND_PROTOCOL)
+                                   DEFAULT_BACKEND_PROTOCOL, CLINGRAPH_PATH, 
+                                   GRAPH_PATH, PROGRAM_STORAGE_PATH, STDIN_TMP_STORAGE_PATH)
 
 
 
@@ -53,16 +56,15 @@ def run(host=DEFAULT_BACKEND_HOST, port=DEFAULT_BACKEND_PORT, colors=None):
     #     display_refresh_button()
 
     print(f"Starting backend at {backend_url}")
-    log = open('viasp.log', 'w', encoding="utf-8")
+    log = open('viasp.log', 'a', encoding="utf-8")
     viasp_backend = Popen(command, stdout=log, stderr=log)
 
     app = Dash(__name__)
-    app.layout = test_viasp_dash.ViaspDash(
+    app.layout = viasp_dash.ViaspDash(
         id="myID",
         backendURL=backend_url,
         colors=colors
         )
-    app.title = "viASP"
 
     # make sure the backend is up, before continuing with other modules
     t_start = time()
@@ -84,8 +86,20 @@ def run(host=DEFAULT_BACKEND_HOST, port=DEFAULT_BACKEND_PORT, colors=None):
         """ close the log file"""
         file.close()
 
+    def shutdown():
+        """ when quitting app, remove all files in 
+                the static/clingraph folder
+                and auxiliary program files
+        """
+        if os.path.exists(CLINGRAPH_PATH):
+            shutil.rmtree(CLINGRAPH_PATH)
+        for file in [GRAPH_PATH, PROGRAM_STORAGE_PATH, STDIN_TMP_STORAGE_PATH]:
+            if os.path.exists(file):
+                os.remove(file)
+
     # kill the backend on keyboard interruptions
     atexit.register(terminate_process, viasp_backend)
     atexit.register(close_file, log)
+    atexit.register(shutdown)
 
     return app

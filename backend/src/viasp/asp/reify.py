@@ -1,12 +1,12 @@
 from collections import defaultdict
-from typing import Dict, List, Tuple, Iterable, Set, Collection, Any, Union, Sequence, Generator
+from typing import Dict, List, Tuple, Iterable, Set, Collection, Any, Union, Sequence
 
 import clingo
 import networkx as nx
 from clingo import ast, Symbol
 from clingo.ast import Transformer, parse_string, Rule, ASTType, AST, Literal, Minimize, Disjunction
 
-from .utils import is_constraint, merge_constraints, rank_topological_sorts
+from .utils import is_constraint, merge_constraints, topological_sort
 from ..asp.utils import merge_cycles, remove_loops
 from viasp.asp.ast_types import SUPPORTED_TYPES, ARITH_TYPES, UNSUPPORTED_TYPES, UNKNOWN_TYPES
 from ..shared.model import Transformation, TransformationError, FailedReason
@@ -210,7 +210,7 @@ class ProgramAnalyzer(DependencyCollector, FilteredTransformer):
         self.rules: List[Rule] = []
         self.names: Set[str] = set()
 
-    def _get_conflict_free_version_of_name(self, name: str) -> str:
+    def _get_conflict_free_version_of_name(self, name: str) -> Collection[str]:
         candidates = [name for name, _ in self.dependants.keys()]
         candidates.extend([name for name, _ in self.conditions.keys()])
         candidates.extend([getattr(getattr(getattr(fact,"atom"), "symbol"), "name", "") for fact in self.facts])
@@ -251,7 +251,7 @@ class ProgramAnalyzer(DependencyCollector, FilteredTransformer):
         return extract_symbols(self.facts, self.constants)
 
     def get_constants(self):
-        return list(self.constants)
+        return self.constants
 
     def register_symbolic_dependencies(self, deps: Dict[Literal, List[Literal]]):
         for u, conditions in deps.items():
@@ -320,9 +320,9 @@ class ProgramAnalyzer(DependencyCollector, FilteredTransformer):
         self.constants.add(definition)
         return definition
 
-    def add_program(self, program: str, RegisteredTransformer: Union[Transformer,None] = None) -> None:
-        if RegisteredTransformer is not None:
-            registered_visitor = RegisteredTransformer() # type: ignore
+    def add_program(self, program: str, registered_transformer: Transformer = None) -> None:
+        if registered_transformer is not None:
+            registered_visitor = registered_transformer()
             new_program: List[AST] = []
 
             def add(statement):
@@ -339,16 +339,15 @@ class ProgramAnalyzer(DependencyCollector, FilteredTransformer):
 
     def sort_program(self, program) -> List[Transformation]:
         parse_string(program, lambda rule: self.visit(rule))
-        sorted_programs = self.sort_program_by_dependencies()
-        return [Transformation(i, prg) for i, prg in enumerate(sorted_programs[0])]
+        sorted_program = self.sort_program_by_dependencies()
+        return [Transformation(i, prg) for i, prg in enumerate(sorted_program)]
 
-    def get_sorted_program(self) -> Generator[List[Transformation], None, None]:
-        sorted_programs = self.sort_program_by_dependencies()
-        for program in sorted_programs:
-            yield [Transformation(i, (prg)) for i, prg in enumerate(program)]
+    def get_sorted_program(self) -> List[Transformation]:
+        sorted_program = self.sort_program_by_dependencies()
+        return [Transformation(i, prg) for i, prg in enumerate(sorted_program)]
 
-    def make_dependency_graph(self, head_dependencies: Dict[Tuple[str, int], Iterable[AST]],
-                              body_dependencies: Dict[Tuple[str, int], Iterable[AST]]) -> nx.DiGraph:
+    def make_dependency_graph(self, head_dependencies: Dict[Tuple[str, int], Iterable[clingo.ast.AST]],
+                              body_dependencies: Dict[Tuple[str, int], Iterable[clingo.ast.AST]]) -> nx.DiGraph:
         """
         We draw a dependency graph based on which rule head contains which literals.
         That way we know, that in order to have a rule r with a body containing literal l, all rules that have l in their
@@ -379,8 +378,8 @@ class ProgramAnalyzer(DependencyCollector, FilteredTransformer):
         deps = merge_constraints(deps)
         deps, _ = merge_cycles(deps)
         deps, _ = remove_loops(deps)
-        programs = rank_topological_sorts(nx.all_topological_sorts(deps), self.rules)
-        return programs
+        program = topological_sort(deps, self.rules)
+        return program
 
     def check_positive_recursion(self):
         deps1 = self.make_dependency_graph(self.dependants, self.positive_conditions)
@@ -515,7 +514,7 @@ def reify(transformation: Transformation, **kwargs):
     return result
 
 
-def reify_list(transformations: Iterable[Transformation], **kwargs) -> Collection[AST]:
+def reify_list(transformations: Iterable[Transformation], **kwargs) -> List[AST]:
     reified = []
     for part in transformations:
         reified.extend(reify(part, **kwargs))

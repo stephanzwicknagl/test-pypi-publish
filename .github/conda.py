@@ -37,17 +37,19 @@ def run():
     parser.add_argument('--release', action='store_true', help='Build release packages.')
     parser.add_argument('--package', type=str, help='Package to build. (frontend, backend, or viasp)', default='frontend')
     args = parser.parse_args()
-    path = 'viasp-dash'
-    if args.package == 'backend':
-        path = 'viasp-backend'
-    elif args.package == 'viasp':
-        path = 'viasp'
     if args.release:
         label = None
         channels = ['potassco']
     else:
         label = "dev"
         channels = ['potassco/label/dev', 'potassco']
+
+    path = 'viasp-dash'
+    if args.package == 'backend':
+        path = 'viasp-backend'
+        channels.extend(['conda-forge'])
+    elif args.package == 'viasp':
+        path = 'viasp'
 
     version = None
     with open('setup.cfg') as fh:

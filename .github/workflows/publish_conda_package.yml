@@ -88,13 +88,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Building wrapper
-        run: python -m build --sdist --wheel --outdir dist/;
       - name: setup miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:

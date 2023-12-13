@@ -50,6 +50,7 @@ def run():
         channels.extend(['conda-forge'])
     elif args.package == 'viasp':
         path = 'viasp'
+        channels.extend(['conda-forge', 'stephanzwicknagl/label/dev']) # change this to wherever the viasp-dash and viasp-backend are hosted
 
     version = None
     with open('setup.cfg') as fh:
